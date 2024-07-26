@@ -11,7 +11,7 @@ export const registerUser = async (req, res) => {
         // check email already exists   
         let user = await User.findOne({ email })
         if (user) {
-            res.status(400).json({
+            return res.status(400).json({
                 message: "User Email Already Exists"
             })
         }
@@ -63,10 +63,6 @@ export const verifyUser = async (req, res) => {
                 message: "OTP Expired"
             })
         }
-        // Check if the OTP matches
-        if (verify.otp !== otp) {
-            return res.status(400).json({ message: "Wrong OTP" });
-        }
 
         await User.create({
             name: verify.user.name,
@@ -84,6 +80,7 @@ export const verifyUser = async (req, res) => {
     }
 }
 
+// user Login
 export const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body
@@ -103,9 +100,32 @@ export const loginUser = async (req, res) => {
             })
         }
 
-// generate sign token
+        // generate sign token
+        const token = jwt.sign({ _id: user.id }, process.env.JWT_SECRET, { expiresIn: "15d" })
 
+        // exclude the password field before sending
+        const { password: userPassword, ...userDetails } = user.toObject()
+        return res.status(200).json({
+            message: "Welcome " + user.name,
+            token,
+            user:userDetails
+        })
 
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        })
+    }
+}
+
+// user profile
+export const myProfile=async (req, res) => {
+    
+    try {
+        const user=await User.findById(req.user._id).select("-password")
+        return res.status(200).json({
+            message: user
+        })
     } catch (error) {
         return res.status(500).json({
             message: error.message
